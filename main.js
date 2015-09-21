@@ -47,7 +47,8 @@ chuckNorris.src = "hero.png";
 
 var player = new Player();
 var keyboard = new Keyboard();
-
+var enemy = new Enemy();
+var bullet = new Bullet ();
 
 function run()
 {
@@ -59,6 +60,11 @@ function run()
 	player.update(deltaTime);
 	player.draw();
 	
+	enemy.update(deltaTime);
+	enemy.draw();
+	
+	bullet.update(deltaTime);
+	bullet.draw();
 		
 	// update the frame counter 
 	fpsTime += deltaTime;
