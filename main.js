@@ -29,6 +29,27 @@ function getDeltaTime()
 
 //-------------------- Don't modify anything above here
 
+//sets picture for the staring screen
+var start_game = document.createElement("img");
+start_game.src = "start_game.png";
+
+//sets picture for end screen
+var game_over = document.createElement ("img");
+game_over.src = "game_over.png";
+
+var game_over2 = document.createElement ("img");
+game_over2.src = "game_over2.png";
+
+var STATE_SPLASH = 0;
+var STATE_GAME =1;
+var STATE_GAMEOVER1 = 2;
+var STATE_GAMEOVER2 = 3;
+var STATE_COLLISIONS = 4;
+
+var gameState = STATE_SPLASH;
+
+var splashTimer = 3;
+
 var SCREEN_WIDTH = canvas.width;
 var SCREEN_HEIGHT = canvas.height;
 
@@ -45,17 +66,74 @@ var chuckNorris = document.createElement("img");
 chuckNorris.src = "hero.png";
 
 
-var player = new Player();
-var keyboard = new Keyboard();
-var enemy = new Enemy();
-var bullet = new Bullet ();
 
-function run()
+
+//number of layers on map
+var LAYER_COUNT = 3;
+//how big my level is in tiles
+var MAP={tw:60, th:15};
+//width and height of my tile
+var TILE=35;
+//width and height of a tile in the tileset
+var TILESET_TILE=TILE*2;
+//how many poixles are between the image border and images in titlemap
+var TILESET_PADDING=2;
+//pixels between tile images 
+var TILESET_SPACING=2;
+//how many colums of tile images there are
+var TILESET_COUNT_X=14;
+//how many rows of tile images there are
+var TILESET_COUNT_Y=14;
+
+
+ // abitrary choice for 1m
+var METER = TILE;
+ // very exaggerated gravity (6x)
+var GRAVITY = METER * 9.8 * 3;
+ // max horizontal speed (10 tiles per second)
+var MAXDX = METER * 8;
+ // max vertical speed (15 tiles per second)
+var MAXDY = METER * 15;
+ // horizontal acceleration - take 1/2 second to reach maxdx
+var ACCEL = MAXDX * 1;
+ // horizontal friction - take 1/6 second to stop from maxdx
+var FRICTION = MAXDX * 6;
+ // (a large) instantaneous jump impulse
+var JUMP = METER * 1500;
+
+
+var musicBacground;
+var sfxFire;
+
+function runSplash(deltaTime)
+{
+	
+	if(keyboard.isKeyDown(keyboard.KEY_SPACE) == true)
+	{
+		gameState = STATE_GAME;
+		
+		return;
+	}
+	context.drawImage(
+	start_game, 0, 0)
+}
+
+function runGame(deltaTime)
 {
 	context.fillStyle = "#ccc";		
 	context.fillRect(0, 0, canvas.width, canvas.height);
 	
-	var deltaTime = getDeltaTime();
+	drawMap();
+	
+	//var deltaTime = getDeltaTime();
+	
+	for(var i =0; i<bullets.length; ++i)
+	{
+		bullets[i].update(deltaTime);
+		bullets[i].draw();
+	}
+	
+
 	
 	player.update(deltaTime);
 	player.draw();
@@ -63,8 +141,7 @@ function run()
 	enemy.update(deltaTime);
 	enemy.draw();
 	
-	bullet.update(deltaTime);
-	bullet.draw();
+
 		
 	// update the frame counter 
 	fpsTime += deltaTime;
@@ -80,7 +157,211 @@ function run()
 	context.fillStyle = "#f00";
 	context.font="14px Arial";
 	context.fillText("FPS: " + fps, 5, 20, 100);
+	
+	var hit=false;
+	for(var i=0; i<bullets.length; i++)
+	{
+		bullets[i].update(deltaTime);
+		
+		/*
+		if( bullets[i].position.x - worldOffsetX < 0 ||
+			bullets[i].position.x - worldOffsetX > SCREEN_WIDTH)
+		{
+			hit = true;
+		}
+		for(var j=0; j<enemies.length; j++)
+		{
+			if(intersects( bullets[i].position.x, bullets[i].position.y, TILE, TILE,
+				enemies[j].position.x, enemies[j].position.y, TILE, TILE) == true)
+			{
+				// kill both the bullet and the enemy
+				enemies.splice(j, 1);
+				hit = true;
+				// increment the player score
+				score += 1;
+				break;
+			}
+		}
+		*/
+		if(hit == true)
+		{
+			bullets.splice(i, 1);
+			break;
+		}
+
+	}
+
+	if(player.position.y > SCREEN_HEIGHT) {
+		gameState = STATE_GAMEOVER1
+	}
+	
 }
+
+function runGameOver(deltaTime)
+{
+	context.drawImage(
+	game_over, 0, 0)
+
+}
+
+
+
+var cells = []; // the array that holds our simplified collision data
+function initialize() {
+	for(var layerIdx = 0; layerIdx < LAYER_COUNT; layerIdx++) { // initialize the collision map
+		 cells[layerIdx] = [];
+		 var idx = 0;
+		 for(var y = 0; y < level1.layers[layerIdx].height; y++) {
+			 cells[layerIdx][y] = [];
+			 for(var x = 0; x < level1.layers[layerIdx].width; x++) {
+				 if(level1.layers[layerIdx].data[idx] != 0) {
+					 // for each tile we find in the layer data, we need to create 4 collisions
+					 // (because our collision squares are 35x35 but the tile in the
+					// level are 70x70)
+					 cells[layerIdx][y][x] = 1;
+					cells[layerIdx][y-1][x] = 1;
+					cells[layerIdx][y-1][x+1] = 1;
+					cells[layerIdx][y][x+1] = 1;
+				 }
+				 else if(cells[layerIdx][y][x] != 1) {
+					// if we haven't set this cell's value, then set it to 0 now
+					 cells[layerIdx][y][x] = 0;
+				}
+				idx++;
+			 }
+		}
+	}
+	
+	musicBackground = new Howl(
+	{
+		urls: ["background.ogg"],
+		loop: true,
+		buffer: true,
+		volume: 0.5
+	} );
+	musicBackground.play();
+	sfxFire = new Howl(
+	{
+		urls: ["fireEffect.ogg"],
+		buffer: true,
+		volume: 1,
+		onend: function() {
+		isSfxPlaying = false;
+		}	
+	} );
+
+}
+var bullets = [];
+
+
+var LAYER_COUNT = 3;
+var LAYER_BACKGOUND = 0;
+var LAYER_PLATFORMS = 1;
+var LAYER_LADDERS = 2;
+
+
+
+function cellAtPixelCoord(layer, x,y)
+{
+	if(x<0 || x>SCREEN_WIDTH || y<0)
+	return 1;
+	// let the player drop of the bottom of the screen (this means death)
+	if(y>SCREEN_HEIGHT)
+	return 0;
+	return cellAtTileCoord(layer, p2t(x), p2t(y));
+	
+};
+function cellAtTileCoord(layer, tx, ty)
+{
+	if(tx<0 || tx>=MAP.tw || ty<0)
+	return 1;
+	// let the player drop of the bottom of the screen (this means death)
+	if(ty>=MAP.th)
+	return 0;
+	return cells[layer][ty][tx];
+	
+};
+function tileToPixel(tile)
+{
+	return tile * TILE;
+};
+function pixelToTile(pixel)
+{
+	return Math.floor(pixel/TILE);
+};
+function bound(value, min, max)
+{
+	if(value < min)
+	return min;
+	if(value > max)
+	return max;
+	return value;
+}
+
+var player = new Player();
+var keyboard = new Keyboard();
+var enemy = new Enemy();
+
+//load the image to use for teh level tiles
+var tileset = document.createElement("img");
+tileset.src = "tileset.png";
+
+
+function drawMap()
+{
+ for(var layerIdx=0; layerIdx<LAYER_COUNT; layerIdx++)
+	 {
+	 var idx = 0;
+	 for( var y = 0; y < level1.layers[layerIdx].height; y++ )
+	 {
+		 for( var x = 0; x < level1.layers[layerIdx].width; x++ )
+		 {
+			 if( level1.layers[layerIdx].data[idx] != 0 )
+			 {
+				 // the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile), so subtract one from the tileset id to get the
+				 // correct tile
+				 var tileIndex = level1.layers[layerIdx].data[idx] - 1;
+				 var sx = TILESET_PADDING + (tileIndex % TILESET_COUNT_X) * (TILESET_TILE + TILESET_SPACING);
+				 var sy = TILESET_PADDING + (Math.floor(tileIndex / TILESET_COUNT_Y)) * (TILESET_TILE + TILESET_SPACING);
+				 context.drawImage(tileset, sx, sy, TILESET_TILE, TILESET_TILE, x*TILE, (y-1)*TILE, TILESET_TILE, TILESET_TILE);
+			 }
+			 idx++;
+		 }
+	 }
+ }
+}
+
+function run()
+{
+	context.fillStyle = "#ccc";
+context.fillRect(0, 0, canvas.width, canvas.height);
+	
+	
+	var deltaTime = getDeltaTime();
+	
+	switch(gameState)
+	{
+		case STATE_SPLASH:
+			runSplash(deltaTime);
+			break;
+		case STATE_GAME:
+			runGame(deltaTime);
+			break;
+		case STATE_GAMEOVER1:
+			runGameOver(deltaTime);
+			break;
+		case STATE_GAMEOVER2:
+			runGameOver2(deltaTime);
+			break;
+		case STATE_COLLISIONS:
+			runCollisions(deltaTime);
+			break;
+			
+			
+	}
+}
+
+initialize();
 
 
 //-------------------- Don't modify anything below here

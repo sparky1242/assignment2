@@ -14,11 +14,13 @@ var Keyboard = function(){
 	this.KEY_RIGHT = 39;
 	this.KEY_DOWN = 40;
 	
+	this.KEY_O = 79;
+	this.KEY_I = 73;
 	this.KEY_A = 65;
 	this.KEY_D = 68;
 	this.KEY_S = 83;
 	this.KEY_W = 87;
-	this.KEY_SHIFT = 16;
+	this.KEY_Z = 90;
 
 };
 

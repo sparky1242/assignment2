@@ -1,36 +1,30 @@
-var Bullet = function() {
-	this.image = document.createElement("img");
-	this.x = canvas.width/2;
-	this.y = canvas.height/2;
-	this.width = 20;
-	this.height = 20;
-	this.image.src = "bullet.png";
-	this.velocityX = -30;
-	this.velocityY = -30;
+var Bullet = function(x, y, moveRight) {
+	this.sprite = new Sprite("bullet.png");
+	this.sprite.buildAnimation(1, 1, 32, 32, -1, [0]);
+	this.sprite.setAnimationOffset(0, 0, 0);
+	this.sprite.setLoop(0, false);
+	this.position = new Vector2();
+	this.position.set(x, y);
+	this.velocity = new Vector2();
+	this.moveRight = moveRight;
+	if(this.moveRight == true)
+		this.velocity.set(MAXDX *2, 0);
+	else
+		this.velocity.set(-MAXDX *2, 0);
+
 };
 
 Bullet.prototype.update = function(deltaTime)
 {
-	if( typeof(this.rotation) == "undefined" )
-		this.rotation = 0; // hang on, where did this variable come from!
+	this.sprite.update(deltaTime);
+	this.position.x = Math.floor(this.position.x + (deltaTime * this.velocity.x));
 	
-	this.x += this.velocityX * deltaTime;
-	this.y += this.velocityY * deltaTime;
-	
-	if(keyboard.isKeyDown(keyboard.KEY_SPACE) == true)
-	{
-		this.rotation = player.rotation;
-		this.velocityX = Math.cos(this.rotation) * -30;
-		this.velocityY = Math.sin(this.rotation) * -30;
-	}
 }
 
 Bullet.prototype.draw = function()
 {
-	context.save();
-		context.translate(this.x, this.y);
-		context.rotate(this.rotation);
-		context.drawImage(this.image, -this.width/2, -this.height/2);
-	context.restore();
+	var worldOffsetX = 0;
+	var screenX = this.position.x - worldOffsetX;
+	this.sprite.draw(context, screenX, this.position.y)
 }
 
