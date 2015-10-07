@@ -29,9 +29,15 @@ function getDeltaTime()
 
 //-------------------- Don't modify anything above here
 
+var score = 0;
+
+var lives = 3;
 //sets picture for the staring screen
 var start_game = document.createElement("img");
 start_game.src = "start_game.png";
+
+var heartImage = document.createElement("img");
+heartImage.src = "heart.png";
 
 //sets picture for end screen
 var game_over = document.createElement ("img");
@@ -89,7 +95,7 @@ var TILESET_COUNT_Y=14;
  // abitrary choice for 1m
 var METER = TILE;
  // very exaggerated gravity (6x)
-var GRAVITY = METER * 9.8 * 3;
+var GRAVITY = METER * 9.8 * 2.7;
  // max horizontal speed (10 tiles per second)
 var MAXDX = METER * 8;
  // max vertical speed (15 tiles per second)
@@ -142,7 +148,23 @@ function runGame(deltaTime)
 	enemy.draw();
 	
 
-		
+	//score
+	context.fillStyle = "#0b7400";
+	context.font="32px Arial";
+	var scoreText = "Score: " + score;
+	context.fillText(scoreText, SCREEN_WIDTH - 170, 35);
+	
+	// life counter
+	for(var i=0; i<lives; i++)
+	{
+		context.drawImage(heartImage, 20 + ((heartImage.width+2)*i), 10);
+	}
+	
+	if(lives == 0)
+	{
+		gameState = STATE_GAMEOVER1
+	}
+	
 	// update the frame counter 
 	fpsTime += deltaTime;
 	fpsCount++;
@@ -192,7 +214,9 @@ function runGame(deltaTime)
 	}
 
 	if(player.position.y > SCREEN_HEIGHT) {
-		gameState = STATE_GAMEOVER1
+		player.position.x = SCREEN_WIDTH/2
+		player.position.y = SCREEN_HEIGHT - SCREEN_HEIGHT
+		lives = lives-1
 	}
 	
 }
@@ -306,28 +330,56 @@ var enemy = new Enemy();
 var tileset = document.createElement("img");
 tileset.src = "tileset.png";
 
+worldOffsetX =0;
 
 function drawMap()
 {
  for(var layerIdx=0; layerIdx<LAYER_COUNT; layerIdx++)
 	 {
-	 var idx = 0;
-	 for( var y = 0; y < level1.layers[layerIdx].height; y++ )
+	 
+	 var maxTiles = Math.floor(SCREEN_WIDTH/ TILE) + 2;
+	 var tileX = pixelToTile(player.position.x);
+	 var offsetX = TILE + Math.floor(player.position.x%TILE);
+	 
+	 startX = tileX - Math.floor(maxTiles / 2);
+	 
+	 if(startX < -1)
 	 {
-		 for( var x = 0; x < level1.layers[layerIdx].width; x++ )
-		 {
-			 if( level1.layers[layerIdx].data[idx] != 0 )
-			 {
-				 // the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile), so subtract one from the tileset id to get the
-				 // correct tile
-				 var tileIndex = level1.layers[layerIdx].data[idx] - 1;
-				 var sx = TILESET_PADDING + (tileIndex % TILESET_COUNT_X) * (TILESET_TILE + TILESET_SPACING);
-				 var sy = TILESET_PADDING + (Math.floor(tileIndex / TILESET_COUNT_Y)) * (TILESET_TILE + TILESET_SPACING);
-				 context.drawImage(tileset, sx, sy, TILESET_TILE, TILESET_TILE, x*TILE, (y-1)*TILE, TILESET_TILE, TILESET_TILE);
-			 }
-			 idx++;
-		 }
+		startX = 0;
+		offsetX = 0;
 	 }
+	 if(startX > MAP.tw - maxTiles)
+	 {
+		startX = MAP.tw - maxTiles + 1;
+		offsetX = TILE;
+	 }
+	 
+	 worldOffsetX = startX * TILE + offsetX;
+		
+	for( var layerIdx=0; layerIdx < LAYER_COUNT; layerIdx++ )
+	{
+		for( var y = 0; y < level1.layers[layerIdx].height; y++ )
+		{
+			var idx = y * level1.layers[layerIdx].width + startX;
+			for( var x = startX; x < startX + maxTiles; x++ )
+			{
+				 if( level1.layers[layerIdx].data[idx] != 0 )
+				 {
+					 // the tiles in the Tiled map are base 1 (meaning a value of 0 means no tile),
+					 // so subtract one from the tileset id to get the
+					 // correct tile
+					 var tileIndex = level1.layers[layerIdx].data[idx] - 1;
+					 var sx = TILESET_PADDING + (tileIndex % TILESET_COUNT_X) *
+					(TILESET_TILE + TILESET_SPACING);
+					 var sy = TILESET_PADDING + (Math.floor(tileIndex / TILESET_COUNT_Y)) *
+					(TILESET_TILE + TILESET_SPACING);
+					 context.drawImage(tileset, sx, sy, TILESET_TILE, TILESET_TILE,
+					(x-startX)*TILE - offsetX, (y-1)*TILE, TILESET_TILE, TILESET_TILE);
+				 }
+				 idx++;
+			}
+		}
+	}
  }
 }
 

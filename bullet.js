@@ -8,11 +8,12 @@ var Bullet = function(x, y, moveRight) {
 	this.velocity = new Vector2();
 	this.moveRight = moveRight;
 	if(this.moveRight == true)
-		this.velocity.set(MAXDX *2, 0);
+		this.velocity.set(MAXDX*1.7 , 0);
 	else
-		this.velocity.set(-MAXDX *2, 0);
+		this.velocity.set(-MAXDX*1.7 , 0);
 
 };
+
 
 Bullet.prototype.update = function(deltaTime)
 {
@@ -23,8 +24,9 @@ Bullet.prototype.update = function(deltaTime)
 
 Bullet.prototype.draw = function()
 {
-	var worldOffsetX = 0;
+	//var worldOffsetX = 0;
 	var screenX = this.position.x - worldOffsetX;
 	this.sprite.draw(context, screenX, this.position.y)
+	
 }
 
