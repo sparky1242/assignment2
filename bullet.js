@@ -6,6 +6,8 @@ var Bullet = function(x, y, moveRight) {
 	this.position = new Vector2();
 	this.position.set(x, y);
 	this.velocity = new Vector2();
+	this.width = 20;
+	this.height = 10
 	this.moveRight = moveRight;
 	if(this.moveRight == true)
 		this.velocity.set(MAXDX*1.7 , 0);

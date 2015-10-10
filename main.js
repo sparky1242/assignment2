@@ -73,9 +73,17 @@ chuckNorris.src = "hero.png";
 
 
 
+var enemies = [];
 
-//number of layers on map
-var LAYER_COUNT = 3;
+var LAYER_COUNT = 4;
+var LAYER_BACKGOUND = 0;
+var LAYER_PLATFORMS = 1;
+var LAYER_LADDERS = 2;
+
+var LAYER_OBJECT_ENEMIES = 3;
+var LAYER_OBJECT_TRIGGERS = 4;
+
+
 //how big my level is in tiles
 var MAP={tw:60, th:15};
 //width and height of my tile
@@ -108,6 +116,9 @@ var FRICTION = MAXDX * 6;
 var JUMP = METER * 1500;
 
 
+var ENEMY_MAXDX = METER  *5	
+var ENEMY_ACCEL = ENEMY_MAXDX * 2;
+
 var musicBacground;
 var sfxFire;
 
@@ -139,15 +150,60 @@ function runGame(deltaTime)
 		bullets[i].draw();
 	}
 	
-
+	for(var i = 0; i<enemies.length; i++)
+	{
+		enemies[i].update(deltaTime);
+	}
 	
+	for(var i=0; i<enemies.length; i++)
+	{
+	enemies[i].draw();
+	}
+
 	player.update(deltaTime);
 	player.draw();
 	
-	enemy.update(deltaTime);
-	enemy.draw();
-	
-
+	for(var i=0; i<enemies.length; i++)
+	{
+		var hit = false;
+		
+		for(var j=0; j<bullets.length; j++)
+		{
+			
+			
+			if(intersects(
+				bullets[j].position.x, bullets[j].position.y,
+				bullets[j].width, bullets[j].height,
+				enemies[i].position.x - 30, enemies[i].position.y - 30,
+				enemies[i].width , enemies[i].height ) == true)
+			{
+				enemies.splice(i--, 1);
+				bullets.splice(j--,1);
+				hit = true;
+				score = score +10;
+				break;
+			}
+			
+			
+			
+		}
+		
+		if (hit) {
+			break;
+		}
+			
+		if(intersects(
+				player.position.x, player.position.y,
+				TILE, TILE,
+				enemies[i].position.x, enemies[i].position.y,
+				TILE, TILE) == true)
+				{
+					lives = lives - 1
+					player.position.x = SCREEN_WIDTH/2
+					player.position.y = SCREEN_HEIGHT - SCREEN_HEIGHT
+					break;
+				}
+	}
 	//score
 	context.fillStyle = "#0b7400";
 	context.font="32px Arial";
@@ -228,9 +284,15 @@ function runGameOver(deltaTime)
 
 }
 
-
+function runGameOver2(deltaTime)
+{
+	context.drawImage (
+	game_over2, 0, 0)
+}
 
 var cells = []; // the array that holds our simplified collision data
+
+
 function initialize() {
 	for(var layerIdx = 0; layerIdx < LAYER_COUNT; layerIdx++) { // initialize the collision map
 		 cells[layerIdx] = [];
@@ -253,6 +315,39 @@ function initialize() {
 				}
 				idx++;
 			 }
+		}
+	}
+	
+	// add enemies
+	idx = 0;
+	for(var y = 0; y < level1.layers[LAYER_OBJECT_ENEMIES].height; y++) {
+		for(var x = 0; x < level1.layers[LAYER_OBJECT_ENEMIES].width; x++) {
+			if(level1.layers[LAYER_OBJECT_ENEMIES].data[idx] != 0) {
+				var px = tileToPixel(x);
+				var py = tileToPixel(y);
+				var e = new Enemy(px, py);
+				enemies.push(e);
+				}
+				idx++;
+			}
+	} 
+	
+	cells[LAYER_OBJECT_TRIGGERS] = [];
+	idx = 0;
+	for(var y = 0; y < level1.layers[LAYER_OBJECT_TRIGGERS].height; y++) {
+		cells[LAYER_OBJECT_TRIGGERS][y] = [];
+		for(var x = 0; x < level1.layers[LAYER_OBJECT_TRIGGERS].width; x++) {
+			if(level1.layers[LAYER_OBJECT_TRIGGERS].data[idx] != 0) {
+				cells[LAYER_OBJECT_TRIGGERS][y][x] = 1;
+				cells[LAYER_OBJECT_TRIGGERS][y-1][x] = 1;
+				cells[LAYER_OBJECT_TRIGGERS][y-1][x+1] = 1;
+				cells[LAYER_OBJECT_TRIGGERS][y][x+1] = 1;
+			}
+			else if(cells[LAYER_OBJECT_TRIGGERS][y][x] != 1) {
+				// if we haven't set this cell's value, then set it to 0 now
+				cells[LAYER_OBJECT_TRIGGERS][y][x] = 0;
+			}
+			idx++;
 		}
 	}
 	
@@ -282,6 +377,20 @@ var LAYER_COUNT = 3;
 var LAYER_BACKGOUND = 0;
 var LAYER_PLATFORMS = 1;
 var LAYER_LADDERS = 2;
+
+function intersects(x1, y1, w1, h1, x2, y2, w2, h2)
+{
+	
+		if(y2 + h2 < y1 ||
+		x2 + w2 < x1 ||
+		x2 > x1 + w1 ||
+		y2 > y1 + h1)
+
+	{
+	return false;
+	}
+return true;
+}
 
 
 
@@ -324,7 +433,6 @@ function bound(value, min, max)
 
 var player = new Player();
 var keyboard = new Keyboard();
-var enemy = new Enemy();
 
 //load the image to use for teh level tiles
 var tileset = document.createElement("img");
